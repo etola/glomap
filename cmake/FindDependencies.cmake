@@ -32,6 +32,7 @@ FetchContent_Declare(PoseLib
 )
 message(STATUS "Configuring PoseLib...")
 if (FETCH_POSELIB)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mno-avx512f -mno-avx512vl -mno-avx512bw -mno-avx512dq -Wno-error=stringop-overflow")
     FetchContent_MakeAvailable(PoseLib)
 else()
     find_package(PoseLib REQUIRED)
@@ -46,6 +47,7 @@ FetchContent_Declare(COLMAP
 message(STATUS "Configuring COLMAP...")
 set(UNINSTALL_ENABLED OFF CACHE INTERNAL "")
 if (FETCH_COLMAP)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mno-avx512f -mno-avx512vl -mno-avx512bw -mno-avx512dq -Wno-error=stringop-overflow")
     FetchContent_MakeAvailable(COLMAP)
 
     # Define where to store the patch
