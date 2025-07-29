@@ -25,6 +25,10 @@ if [ ! -d "$HOST_DIR" ]; then
 fi
 echo "Running GLOMAP container with directory: $HOST_DIR"
 
+# Get options to pass to process-dataset.sh (all arguments after the first)
+shift
+PROCESS_DATA_OPTIONS=("$@")
+
 # --- Build Docker Arguments ---
 # Start with the base arguments.
 DOCKER_ARGS=(
@@ -49,4 +53,4 @@ fi
 # --- Execute the Container ---
 # Always start an interactive bash shell.
 echo "Starting interactive bash shell..."
-docker run "${DOCKER_ARGS[@]}" "${GLOMAP_IMAGE}" process-dataset.sh
+docker run "${DOCKER_ARGS[@]}" "${GLOMAP_IMAGE}" process-dataset.sh "${PROCESS_DATA_OPTIONS[@]}"

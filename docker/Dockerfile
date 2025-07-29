@@ -63,12 +63,15 @@ RUN cd colmap && \
     ninja install
 
 # Build and install GLOMAP
-COPY . /glomap
-RUN mkdir glomap/build
-RUN cd glomap/build && \
+WORKDIR /glomap
+COPY ./cmake /glomap/cmake
+COPY ./glomap /glomap/glomap
+COPY ./CMakeLists.txt /glomap/CMakeLists.txt
+
+RUN mkdir /glomap/build
+RUN cd /glomap/build && \
     cmake .. -GNinja -DCMAKE_INSTALL_PREFIX=/colmap_installed && \
     ninja install
-
 
 #
 # Docker runtime stage.
@@ -104,5 +107,5 @@ RUN apt-get update && \
 # # a library. For instance, CMake will be able to find COLMAP easily with the
 # # command: find_package(COLMAP REQUIRED).
 COPY --from=builder /colmap_installed/ /usr/local/
-COPY ./scripts/process-dataset.sh /usr/local/bin/
+COPY ./docker/process-dataset.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/process-dataset.sh
