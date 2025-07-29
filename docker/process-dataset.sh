@@ -37,32 +37,38 @@ if [ -z "$COLMAP" ]; then
     echo "Running GLOMAP processing..."
 
     WFOLDER='/working/glomap'
+    mkdir -p ${WFOLDER}/sparse
 
     colmap feature_extractor \
-        --image_path    ${WFOLDER}/images \
+        --image_path    /working/images \
         --database_path ${WFOLDER}/database.db
+
     colmap exhaustive_matcher --database_path ${WFOLDER}/database.db 
 
     glomap mapper \
+        --image_path    /working/images \
         --database_path ${WFOLDER}/database.db \
-        --image_path    ${WFOLDER}/images \
         --output_path   ${WFOLDER}/sparse
 
 else
     echo "Running COLMAP feature extraction and matching..."
 
     WFOLDER='/working/colmap'
+    mkdir -p ${WFOLDER}/sparse
 
     colmap feature_extractor \
-        --image_path    ${WFOLDER}/images \
+        --image_path    /working/images \
         --database_path ${WFOLDER}/database.db
+
     colmap exhaustive_matcher --database_path ${WFOLDER}/database.db 
 
     colmap mapper \
+        --image_path    /working/images \
         --database_path ${WFOLDER}/database.db \
-        --image_path    ${WFOLDER}/images \
         --output_path   ${WFOLDER}/sparse
 fi
+
+mkdir -p ${WFOLDER}/dense
 
 if [ -n "$DENSE" ]; then
     echo "Running COLMAP dense reconstruction..."
