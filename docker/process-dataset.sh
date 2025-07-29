@@ -74,6 +74,13 @@ if [ -n "$DENSE" ]; then
 
     echo "Running COLMAP dense reconstruction..."
 
+    colmap image_undistorter \
+        --image_path /working/images \
+        --input_path ${WFOLDER}/sparse/0 \
+        --output_path ${WFOLDER}/dense \
+        --output_type COLMAP \
+        --max_image_size 2000
+
     colmap patch_match_stereo \
         --workspace_path ${WFOLDER}/dense \
         --PatchMatchStereo.geom_consistency true
