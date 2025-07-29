@@ -68,9 +68,10 @@ else
         --output_path   ${WFOLDER}/sparse
 fi
 
-mkdir -p ${WFOLDER}/dense
 
 if [ -n "$DENSE" ]; then
+    mkdir -p ${WFOLDER}/dense
+
     echo "Running COLMAP dense reconstruction..."
 
     colmap patch_match_stereo \
