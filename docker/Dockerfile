@@ -4,7 +4,7 @@ ARG NVIDIA_CUDA_VERSION=12.9.1
 #
 # Docker builder stage.
 #
-FROM nvidia/cuda:${NVIDIA_CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION} as builder
+FROM nvidia/cuda:${NVIDIA_CUDA_VERSION}-devel-ubuntu${UBUNTU_VERSION} AS builder
 
 ARG COLMAP_GIT_COMMIT="release/3.10"
 ARG GLOMAP_GIT_COMMIT=main
@@ -36,7 +36,20 @@ RUN apt-get update && \
         qtbase5-dev \
         libqt5opengl5-dev \
         libcgal-dev \
-        libceres-dev
+        libsuitesparse-dev \
+        libatlas-base-dev \
+        cudss
+
+# Build CERES from source with CUDA support
+RUN git clone https://github.com/ceres-solver/ceres-solver.git
+RUN cd ceres-solver && \
+    git submodule update --init --recursive && \   
+    mkdir build && \
+    cd build && \
+    cmake .. -DUSE_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHITECTURES} \
+        -DCMAKE_INSTALL_PREFIX=/colmap_installed -DCMAKE_BUILD_TYPE=Release && \
+    make -j && \
+    make install
 
 # Build and install COLMAP.
 RUN git clone https://github.com/colmap/colmap.git
@@ -53,15 +66,14 @@ RUN cd colmap && \
 COPY . /glomap
 RUN mkdir glomap/build
 RUN cd glomap/build && \
-    cmake .. -GNinja -DCMAKE_INSTALL_PREFIX=/colmap_installed \
-     -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHITECTURES} && \
+    cmake .. -GNinja -DCMAKE_INSTALL_PREFIX=/colmap_installed && \
     ninja install
 
 
 #
 # Docker runtime stage.
 #
-FROM nvidia/cuda:${NVIDIA_CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION} as runtime
+FROM nvidia/cuda:${NVIDIA_CUDA_VERSION}-runtime-ubuntu${UBUNTU_VERSION} AS runtime
 
 # Minimal dependencies to run COLMAP binary compiled in the builder stage.
 # Note: this reduces the size of the final image considerably, since all the
@@ -71,17 +83,19 @@ RUN apt-get update && \
         libboost-filesystem1.83.0 \
         libboost-program-options1.83.0 \
         libc6 \
-        libceres4 \
         libfreeimage3 \
         libgcc-s1 \
         libgl1 \
         libglew2.2 \
         libgoogle-glog0v6 \
+        libsuitesparse-dev \
+        libatlas3-base \
         libqt5core5a \
         libqt5gui5 \
         libqt5widgets5 \
         libmetis5 \
-        libopengl0
+        libopengl0 \
+        cudss
 
 # # Copy all files from /colmap_installed/ in the builder stage to /usr/local/ in
 # # the runtime stage. This simulates installing COLMAP in the default location
