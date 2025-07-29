@@ -51,6 +51,9 @@ DOCKER_ARGS=(
     --net=host
     -e DISPLAY
     -v "${HOST_DIR}:/working"
+    -v /etc/passwd:/etc/passwd:ro
+    -v /etc/group:/etc/group:ro
+    --user $(id -u):$(id -g)
     -w /working
 )
 

@@ -104,3 +104,5 @@ RUN apt-get update && \
 # # a library. For instance, CMake will be able to find COLMAP easily with the
 # # command: find_package(COLMAP REQUIRED).
 COPY --from=builder /colmap_installed/ /usr/local/
+COPY ./scripts/process-dataset.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/process-dataset.sh

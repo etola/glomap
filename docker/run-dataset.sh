@@ -49,4 +49,4 @@ fi
 # --- Execute the Container ---
 # Always start an interactive bash shell.
 echo "Starting interactive bash shell..."
-docker run "${DOCKER_ARGS[@]}" "${GLOMAP_IMAGE}" bash
+docker run "${DOCKER_ARGS[@]}" "${GLOMAP_IMAGE}" process-dataset.sh
