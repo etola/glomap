@@ -51,8 +51,8 @@ def write_ply(filename, points, colors=None, normals=None):
 def main():
 
     args = parse_args()
-    depth_map_path = os.path.join(args.main_folder, "stereo/depth_maps", args.image_name + ".photometric.bin")
-    normal_map_path = os.path.join(args.main_folder, "stereo/normal_maps", args.image_name + ".photometric.bin")
+    depth_map_path = os.path.join(args.main_folder, "stereo/depth_maps", args.image_name + ".geometric.bin")
+    normal_map_path = os.path.join(args.main_folder, "stereo/normal_maps", args.image_name + ".geometric.bin")
     image_path = os.path.join(args.main_folder, "images", args.image_name)
 
     if not os.path.exists(depth_map_path):
