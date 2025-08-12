@@ -48,7 +48,8 @@ if [ -z "$COLMAP" ]; then
     glomap mapper \
         --image_path    /working/images \
         --database_path ${WFOLDER}/database.db \
-        --output_path   ${WFOLDER}/sparse
+        --output_path   ${WFOLDER}/sparse \
+        --output_format txt
 
 else
     echo "Running COLMAP feature extraction and matching..."
