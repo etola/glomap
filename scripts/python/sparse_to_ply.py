@@ -14,7 +14,7 @@ Usage:
     python sparse_to_ply.py <sparse_folder> <output.ply> [options]
 
 Example:
-    python sparse_to_ply.py /path/to/sparse/reconstruction output.ply --camera-scale 0.1
+    python sparse_to_ply.py /path/to/sparse/reconstruction reconstruction.ply --camera-scale 0.1
 """
 
 import argparse
@@ -336,20 +336,20 @@ def main():
         epilog="""
 Examples:
   # Basic usage
-  python sparse_to_ply.py /path/to/sparse output.ply
+  python sparse_to_ply.py /path/to/sparse reconstruction.ply
   
   # With custom camera scale
-  python sparse_to_ply.py /path/to/sparse output.ply --camera-scale 0.2
+  python sparse_to_ply.py /path/to/sparse reconstruction.ply --camera-scale 0.2
   
   # Only point cloud (no cameras)
-  python sparse_to_ply.py /path/to/sparse output.ply --no-cameras
+  python sparse_to_ply.py /path/to/sparse points_only.ply --no-cameras
         """
     )
     
     parser.add_argument("sparse_folder", type=str,
                        help="Path to COLMAP sparse reconstruction folder (containing cameras.bin/txt, images.bin/txt, points3D.bin/txt)")
     parser.add_argument("output_ply", type=str,
-                       help="Output PLY filename")
+                       help="Output PLY filename (will be saved in sparse_folder)")
     parser.add_argument("--camera-scale", type=float, default=0.1,
                        help="Scale factor for camera coordinate frame axes (default: 0.1)")
     parser.add_argument("--no-cameras", action="store_true",
@@ -364,6 +364,9 @@ Examples:
     if not sparse_folder.exists():
         print(f"Error: Sparse folder '{sparse_folder}' does not exist")
         return 1
+    
+    # Generate full output path
+    output_path = sparse_folder / args.output_ply
     
     print(f"Reading COLMAP sparse reconstruction from: {sparse_folder}")
     
@@ -426,8 +429,8 @@ Examples:
     
     # Write PLY file
     try:
-        write_ply(args.output_ply, final_points, final_colors)
-        print(f"Successfully wrote {len(final_points)} points to: {args.output_ply}")
+        write_ply(output_path, final_points, final_colors)
+        print(f"Successfully wrote {len(final_points)} points to: {output_path}")
         
         # Print summary
         print("\nSummary:")
