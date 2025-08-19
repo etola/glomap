@@ -13,8 +13,9 @@ and generates a PLY file containing:
 Usage:
     python sparse_to_ply.py <sparse_folder> <output.ply> [options]
 
-Example:
+Examples:
     python sparse_to_ply.py /path/to/sparse/reconstruction reconstruction.ply --camera-scale 0.1
+    python sparse_to_ply.py /path/to/sparse/reconstruction cameras.ply --cameras-only
 """
 
 import argparse
@@ -338,11 +339,17 @@ Examples:
   # Basic usage
   python sparse_to_ply.py /path/to/sparse reconstruction.ply
   
-  # With custom camera scale
-  python sparse_to_ply.py /path/to/sparse reconstruction.ply --camera-scale 0.2
+  # With custom camera scale (short flag)
+  python sparse_to_ply.py /path/to/sparse reconstruction.ply -s 0.2
   
   # Only point cloud (no cameras)
-  python sparse_to_ply.py /path/to/sparse points_only.ply --no-cameras
+  python sparse_to_ply.py /path/to/sparse points_only.ply -n
+  
+  # Only camera poses (no 3D points)
+  python sparse_to_ply.py /path/to/sparse cameras_only.ply --cameras-only
+  
+  # Dense camera visualization with short flags
+  python sparse_to_ply.py /path/to/sparse detailed.ply -s 0.15 -p 20
         """
     )
     
@@ -350,14 +357,21 @@ Examples:
                        help="Path to COLMAP sparse reconstruction folder (containing cameras.bin/txt, images.bin/txt, points3D.bin/txt)")
     parser.add_argument("output_ply", type=str,
                        help="Output PLY filename (will be saved in sparse_folder)")
-    parser.add_argument("--camera-scale", type=float, default=0.1,
+    parser.add_argument("-s", "--camera-scale", type=float, default=0.1,
                        help="Scale factor for camera coordinate frame axes (default: 0.1)")
-    parser.add_argument("--no-cameras", action="store_true",
+    parser.add_argument("-n", "--no-cameras", action="store_true",
                        help="Don't include camera coordinate frames in output")
-    parser.add_argument("--camera-points-per-axis", type=int, default=10,
+    parser.add_argument("--cameras-only", action="store_true",
+                       help="Only include camera coordinate frames, skip 3D reconstruction points")
+    parser.add_argument("-p", "--camera-points-per-axis", type=int, default=10,
                        help="Number of points per coordinate axis for camera visualization (default: 10)")
     
     args = parser.parse_args()
+    
+    # Validate arguments
+    if args.cameras_only and args.no_cameras:
+        print("Error: Cannot use --cameras-only and --no-cameras together")
+        return 1
     
     # Check input folder
     sparse_folder = Path(args.sparse_folder)
@@ -383,16 +397,18 @@ Examples:
     all_points = []
     all_colors = []
     
-    # Add 3D points from sparse reconstruction
-    if points3D:
+    # Add 3D points from sparse reconstruction (skip if cameras-only mode)
+    if points3D and not args.cameras_only:
         sparse_points = np.array([p['xyz'] for p in points3D.values()])
         sparse_colors = np.array([p['rgb'] for p in points3D.values()])
         all_points.append(sparse_points)
         all_colors.append(sparse_colors)
         print(f"Added {len(sparse_points)} sparse reconstruction points")
+    elif args.cameras_only:
+        print("Cameras-only mode: Skipping 3D reconstruction points")
     
-    # Add camera coordinate frames
-    if not args.no_cameras and images:
+    # Add camera coordinate frames (always include if cameras-only mode)
+    if (not args.no_cameras or args.cameras_only) and images:
         camera_points = []
         camera_colors = []
         
@@ -434,11 +450,13 @@ Examples:
         
         # Print summary
         print("\nSummary:")
-        if points3D:
+        if points3D and not args.cameras_only:
             print(f"  - Sparse reconstruction points: {len(sparse_points)}")
-        if not args.no_cameras and images:
+        if (not args.no_cameras or args.cameras_only) and images:
             print(f"  - Camera coordinate frame points: {len(camera_points)}")
             print(f"  - Camera frame scale: {args.camera_scale}")
+        if args.cameras_only:
+            print(f"  - Mode: Cameras only (3D points skipped)")
         print(f"  - Total points in PLY: {len(final_points)}")
         
     except Exception as e:

@@ -23,6 +23,10 @@ for i in "$@"; do
             DENSE=true
             shift
             ;;
+        --undistort)
+            UNDISTORT=true
+            shift
+            ;;
         *)
         echo "ERROR: Unknown option '$i'." >&2
             echo "Use --help for usage information." >&2
@@ -69,11 +73,9 @@ else
         --output_path   ${WFOLDER}/sparse
 fi
 
-
-if [ -n "$DENSE" ]; then
+if [ -n "$DENSE" ] || [ -n "$UNDISTORT" ]; then
     mkdir -p ${WFOLDER}/dense
-
-    echo "Running COLMAP dense reconstruction..."
+    echo "Running COLMAP undistorted reconstruction..."
 
     colmap image_undistorter \
         --image_path /working/images \
@@ -81,6 +83,13 @@ if [ -n "$DENSE" ]; then
         --output_path ${WFOLDER}/dense \
         --output_type COLMAP \
         --max_image_size 2000
+fi
+
+
+if [ -n "$DENSE" ]; then
+    mkdir -p ${WFOLDER}/dense
+
+    echo "Running COLMAP dense reconstruction..."
 
     colmap patch_match_stereo \
         --workspace_path ${WFOLDER}/dense \
