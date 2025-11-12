@@ -43,7 +43,7 @@ RUN apt-get update && \
 # Build CERES from source with CUDA support
 RUN git clone https://github.com/ceres-solver/ceres-solver.git
 RUN cd ceres-solver && \
-    git submodule update --init --recursive && \   
+    git submodule update --init --recursive && \
     mkdir build && \
     cd build && \
     cmake .. -DUSE_CUDA=ON -DCMAKE_CUDA_ARCHITECTURES=${CUDA_ARCHITECTURES} \
@@ -100,6 +100,9 @@ RUN apt-get update && \
         libopengl0 \
         cudss
 
+RUN apt update && apt install -y --no-install-recommends --no-install-suggests python3 python3-pip
+RUN pip3 install --break-system-packages numpy
+
 # # Copy all files from /colmap_installed/ in the builder stage to /usr/local/ in
 # # the runtime stage. This simulates installing COLMAP in the default location
 # # (/usr/local/), which simplifies environment variables. It also allows the user
@@ -109,3 +112,7 @@ RUN apt-get update && \
 COPY --from=builder /colmap_installed/ /usr/local/
 COPY ./docker/process-dataset.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/process-dataset.sh
+
+WORKDIR /scripts
+COPY ./scripts/python/sparse_to_ply.py /scripts/
+COPY ./scripts/python/binary_to_text_converter.py /scripts/
