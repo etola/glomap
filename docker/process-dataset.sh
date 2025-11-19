@@ -57,13 +57,12 @@ if [ -z "$COLMAP" ]; then
         --image_path    /working/images \
         --database_path ${WFOLDER}/database.db
 
-    colmap exhaustive_matcher --database_path ${WFOLDER}/database.db 
+    colmap exhaustive_matcher --database_path ${WFOLDER}/database.db
 
     glomap mapper \
         --image_path    /working/images \
         --database_path ${WFOLDER}/database.db \
-        --output_path   ${WFOLDER}/sparse \
-        --output_format txt
+        --output_path   ${WFOLDER}/sparse
 
 else
     echo "Running COLMAP feature extraction and matching..."
@@ -75,13 +74,19 @@ else
         --image_path    /working/images \
         --database_path ${WFOLDER}/database.db
 
-    colmap exhaustive_matcher --database_path ${WFOLDER}/database.db 
+    colmap exhaustive_matcher --database_path ${WFOLDER}/database.db
 
     colmap mapper \
         --image_path    /working/images \
         --database_path ${WFOLDER}/database.db \
         --output_path   ${WFOLDER}/sparse
 fi
+
+if [ -d "${WFOLDER}/sparse/0" ]; then
+    python3 /scripts/sparse_to_ply.py ${WFOLDER}/sparse/0/ calib.ply
+    python3 /scripts/binary_to_text_converter.py ${WFOLDER}/sparse/0
+fi
+
 
 if [ -n "$DENSE" ] || [ -n "$UNDISTORT" ]; then
     mkdir -p ${WFOLDER}/dense
@@ -101,6 +106,12 @@ if [ -n "$DENSE" ] || [ -n "$UNDISTORT" ]; then
             --output_path ${WFOLDER}/dense \
             --output_type COLMAP
     fi
+
+    if [ -d "${WFOLDER}/dense/sparse" ]; then
+        python3 /scripts/sparse_to_ply.py ${WFOLDER}/dense/sparse calib.ply
+        python3 /scripts/binary_to_text_converter.py ${WFOLDER}/dense/sparse
+    fi
+
 fi
 
 
@@ -116,4 +127,9 @@ if [ -n "$DENSE" ]; then
     colmap stereo_fusion \
         --workspace_path ${WFOLDER}/dense \
         --output_path ${WFOLDER}/dense/fused.ply
+else
+    echo "No dense reconstruction requested"
+    rm -rf ${WFOLDER}/dense/stereo
+    rm ${WFOLDER}/dense/run-colmap-geometric.sh
+    rm ${WFOLDER}/dense/run-colmap-photometric.sh
 fi
