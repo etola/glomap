@@ -190,7 +190,8 @@ def write_images_text(images, path):
             
             # Write second line: 2D points
             if points2D:
-                points_str = " ".join(f"{x:.10g} {y:.10g} {point3D_id}" 
+                # Convert UINT64_MAX to -1 for invalid point3D_id's (COLMAP text format convention)
+                points_str = " ".join(f"{x:.10g} {y:.10g} {-1 if point3D_id == 18446744073709551615 else point3D_id}" 
                                     for x, y, point3D_id in points2D)
                 f.write(f"{points_str}\n")
             else:

@@ -3,15 +3,16 @@ set -e
 
 # default is to run GLOMAP
 
-for i in "$@"; do
-    case $i in
+while [[ $# -gt 0 ]]; do
+    case $1 in
         --help)
-            echo "Usage: $0 <host_directory> [--colmap]"
-            echo "Example: $0 ../dataset/"
+            echo "Usage: $0 [--colmap] [--undistort] [--dense] [--max-resolution <value>]"
             echo "Options:"
             echo "  --help    Show this help message"
             echo "  --colmap   Run COLMAP feature extraction and matching"
+            echo "  --undistort   Run COLMAP undistorted reconstruction"
             echo "  --dense   Run COLMAP dense reconstruction after SFM computation"
+            echo "  --max-resolution <value>   Maximum image resolution for undistorted reconstruction"
             echo "             If no options are provided, runs GLOMAP processing."
             exit 0
             ;;
@@ -27,8 +28,17 @@ for i in "$@"; do
             UNDISTORT=true
             shift
             ;;
+        --max-resolution)
+            if [[ -n "$2" ]] && [[ "$2" != --* ]]; then
+                MAX_RESOLUTION=$2
+                shift 2
+            else
+                echo "ERROR: --max-resolution requires a value." >&2
+                exit 1
+            fi
+            ;;
         *)
-        echo "ERROR: Unknown option '$i'." >&2
+            echo "ERROR: Unknown option '$1'." >&2
             echo "Use --help for usage information." >&2
             exit 1
             ;;
@@ -77,12 +87,20 @@ if [ -n "$DENSE" ] || [ -n "$UNDISTORT" ]; then
     mkdir -p ${WFOLDER}/dense
     echo "Running COLMAP undistorted reconstruction..."
 
-    colmap image_undistorter \
-        --image_path /working/images \
-        --input_path ${WFOLDER}/sparse/0 \
-        --output_path ${WFOLDER}/dense \
-        --output_type COLMAP \
-        --max_image_size 2000
+    if [ -n "$MAX_RESOLUTION" ]; then
+        colmap image_undistorter \
+            --image_path /working/images \
+            --input_path ${WFOLDER}/sparse/0 \
+            --output_path ${WFOLDER}/dense \
+            --output_type COLMAP \
+            --max_image_size $MAX_RESOLUTION
+    else
+        colmap image_undistorter \
+            --image_path /working/images \
+            --input_path ${WFOLDER}/sparse/0 \
+            --output_path ${WFOLDER}/dense \
+            --output_type COLMAP
+    fi
 fi
 
 
