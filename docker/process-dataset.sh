@@ -48,6 +48,9 @@ done
 
 WFOLDER='/working/'
 
+ASSETS_FOLDER='/working/assets'
+mkdir -p ${ASSETS_FOLDER}
+
 if [ -z "$COLMAP" ]; then
     echo "Running GLOMAP processing..."
 
@@ -83,6 +86,7 @@ else
         --output_path   ${WFOLDER}/sparse
 fi
 
+/scripts/export_calibration.py ${WFOLDER}/sparse/0 -o ${ASSETS_FOLDER}/calibration.json
 
 if [ -n "$DENSE" ] || [ -n "$UNDISTORT" ]; then
     mkdir -p ${WFOLDER}/dense
@@ -148,9 +152,8 @@ if [ -n "$DENSE" ]; then
     #         --output_path ${WFOLDER}/dense/poisson/meshed-poisson.ply \
     #         --PoissonMeshing.depth 8
     # fi
-else
-    echo "No dense reconstruction requested"
-    rm -rf ${WFOLDER}/dense/stereo
-    rm ${WFOLDER}/dense/run-colmap-geometric.sh
-    rm ${WFOLDER}/dense/run-colmap-photometric.sh
+
+    cp ${WFOLDER}/dense/fused.ply ${ASSETS_FOLDER}/point_cloud.ply
+
 fi
+

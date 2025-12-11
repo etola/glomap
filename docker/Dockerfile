@@ -103,6 +103,8 @@ RUN apt-get update && \
 RUN apt update && apt install -y --no-install-recommends --no-install-suggests python3 python3-pip
 RUN pip3 install --break-system-packages numpy
 
+RUN pip3 install --break-system-packages scipy
+
 # # Copy all files from /colmap_installed/ in the builder stage to /usr/local/ in
 # # the runtime stage. This simulates installing COLMAP in the default location
 # # (/usr/local/), which simplifies environment variables. It also allows the user
@@ -116,3 +118,4 @@ RUN chmod +x /usr/local/bin/process-dataset.sh
 WORKDIR /scripts
 COPY ./scripts/python/sparse_to_ply.py /scripts/
 COPY ./scripts/python/binary_to_text_converter.py /scripts/
+COPY ./scripts/python/export_calibration.py /scripts/
