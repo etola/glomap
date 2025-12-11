@@ -14,6 +14,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --dense   Run COLMAP dense reconstruction after SFM computation"
             echo "  --max-resolution <value>   Maximum image resolution for undistorted reconstruction"
             echo "             If no options are provided, runs GLOMAP processing."
+            echo "  --mesh    Run Poisson meshing after dense reconstruction (implies --dense)"
             exit 0
             ;;
         --colmap)
@@ -114,9 +115,6 @@ fi
 #     python3 /scripts/binary_to_text_converter.py ${WFOLDER}/sparse/0
 # fi
 
-
-
-
 if [ -n "$DENSE" ]; then
     mkdir -p ${WFOLDER}/dense
 
@@ -139,7 +137,17 @@ if [ -n "$DENSE" ]; then
 
     colmap stereo_fusion \
         --workspace_path ${WFOLDER}/dense \
-        --output_path ${WFOLDER}/dense/fused.ply
+        --output_path ${WFOLDER}/dense/fused.ply \
+        --input_type photometric
+
+    # if [ -n "$MESHING" ]; then
+    #     echo "Running COLMAP Poisson meshing..."
+    #     mkdir -p ${WFOLDER}/dense/poisson
+    #     colmap poisson_mesher \
+    #         --input_path ${WFOLDER}/dense/fused.ply \
+    #         --output_path ${WFOLDER}/dense/poisson/meshed-poisson.ply \
+    #         --PoissonMeshing.depth 8
+    # fi
 else
     echo "No dense reconstruction requested"
     rm -rf ${WFOLDER}/dense/stereo
