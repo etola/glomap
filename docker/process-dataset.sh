@@ -3,16 +3,16 @@ set -e
 
 # default is to run GLOMAP
 
-for i in "$@"; do
-    case $i in
+while [[ $# -gt 0 ]]; do
+    case $1 in
         --help)
-            echo "Usage: $0 <host_directory> [--colmap]"
-            echo "Example: $0 ../dataset/"
+            echo "Usage: $0 [--colmap] [--undistort] [--dense] [--max-resolution <value>]"
             echo "Options:"
             echo "  --help    Show this help message"
             echo "  --colmap   Run COLMAP feature extraction and matching"
-            echo "  --undistort   Run COLMAP undistortion"
+            echo "  --undistort   Run COLMAP undistorted reconstruction"
             echo "  --dense   Run COLMAP dense reconstruction after SFM computation"
+            echo "  --max-resolution <value>   Maximum image resolution for undistorted reconstruction"
             echo "             If no options are provided, runs GLOMAP processing."
             exit 0
             ;;
@@ -28,12 +28,17 @@ for i in "$@"; do
             UNDISTORT=true
             shift
             ;;
-        --image-size=*)
-            IMAGE_SIZE="${i#*=}"
-            shift
+        --max-resolution)
+            if [[ -n "$2" ]] && [[ "$2" != --* ]]; then
+                MAX_RESOLUTION=$2
+                shift 2
+            else
+                echo "ERROR: --max-resolution requires a value." >&2
+                exit 1
+            fi
             ;;
         *)
-        echo "ERROR: Unknown option '$i'." >&2
+            echo "ERROR: Unknown option '$1'." >&2
             echo "Use --help for usage information." >&2
             exit 1
             ;;
@@ -82,22 +87,26 @@ if [ -n "$DENSE" ] || [ -n "$UNDISTORT" ]; then
     mkdir -p ${WFOLDER}/dense
     echo "Running COLMAP undistorted reconstruction..."
 
-    if [ -z "$IMAGE_SIZE" ]; then
-        IMAGE_SIZE=1024
+    if [ -n "$MAX_RESOLUTION" ]; then
+        colmap image_undistorter \
+            --image_path /working/images \
+            --input_path ${WFOLDER}/sparse/0 \
+            --output_path ${WFOLDER}/dense \
+            --output_type COLMAP \
+            --max_image_size $MAX_RESOLUTION
+    else
+        colmap image_undistorter \
+            --image_path /working/images \
+            --input_path ${WFOLDER}/sparse/0 \
+            --output_path ${WFOLDER}/dense \
+            --output_type COLMAP
     fi
-
-
-    colmap image_undistorter \
-        --image_path /working/images \
-        --input_path ${WFOLDER}/sparse/0 \
-        --output_path ${WFOLDER}/dense \
-        --output_type COLMAP \
-        --max_image_size ${IMAGE_SIZE}
 
     if [ -d "${WFOLDER}/dense/sparse" ]; then
         python3 /scripts/sparse_to_ply.py ${WFOLDER}/dense/sparse calib.ply
         python3 /scripts/binary_to_text_converter.py ${WFOLDER}/dense/sparse
     fi
+
 fi
 
 # if [ -d "${WFOLDER}/sparse/0" ]; then
@@ -114,7 +123,7 @@ if [ -n "$DENSE" ]; then
     echo "Running COLMAP dense reconstruction..."
 
     PM_RESOLUTION=512
-    if [ "$IMAGE_SIZE" -le 512 ]; then
+    if [ "$MAX_RESOLUTION" -le 512 ]; then
         PM_RESOLUTION=256
     fi
 
@@ -127,8 +136,6 @@ if [ -n "$DENSE" ]; then
         --PatchMatchStereo.num_samples 7 \
         --PatchMatchStereo.num_iterations 2 \
         --PatchMatchStereo.max_image_size ${PM_RESOLUTION}
-
-
 
     colmap stereo_fusion \
         --workspace_path ${WFOLDER}/dense \

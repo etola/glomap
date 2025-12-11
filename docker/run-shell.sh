@@ -2,14 +2,8 @@
 
 # Check if any argument is provided.
 if [ $# -eq 0 ]; then
-    echo "Usage: $0 <host_directory> [--colmap] [--undistort] [--dense] [--max-resolution <resolution>]"
+    echo "Usage: $0 <host_directory>"
     echo "Example: $0 ../dataset/"
-    echo "Options:"
-    echo "  --colmap   Run COLMAP feature extraction and matching"
-    echo "  --undistort   Run COLMAP undistorted reconstruction"
-    echo "  --dense   Run COLMAP dense reconstruction after SFM computation"
-    echo "             If no options are provided, runs GLOMAP processing."
-    echo "  --max-resolution   Maximum image resolution for undistorted reconstruction"
     exit 1
 fi
 
@@ -29,11 +23,7 @@ if [ ! -d "$HOST_DIR" ]; then
     echo "Error: Directory '$HOST_DIR' does not exist."
     exit 1
 fi
-echo "Running GLOMAP container with directory: $HOST_DIR"
-
-# Get options to pass to process-dataset.sh (all arguments after the first)
-shift
-PROCESS_DATA_OPTIONS=("$@")
+echo "Mounting directory: $HOST_DIR"
 
 # --- Build Docker Arguments ---
 # Start with the base arguments.
@@ -57,6 +47,7 @@ else
 fi
 
 # --- Execute the Container ---
-# Always start an interactive bash shell.
+# Start an interactive bash shell.
 echo "Starting interactive bash shell..."
-docker run "${DOCKER_ARGS[@]}" "${GLOMAP_IMAGE}" process-dataset.sh "${PROCESS_DATA_OPTIONS[@]}"
+docker run "${DOCKER_ARGS[@]}" "${GLOMAP_IMAGE}" bash
+
