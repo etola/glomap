@@ -28,6 +28,10 @@ for i in "$@"; do
             UNDISTORT=true
             shift
             ;;
+        --image-size=*)
+            IMAGE_SIZE="${i#*=}"
+            shift
+            ;;
         *)
         echo "ERROR: Unknown option '$i'." >&2
             echo "Use --help for usage information." >&2
@@ -73,21 +77,22 @@ else
         --output_path   ${WFOLDER}/sparse
 fi
 
-if [ -d "${WFOLDER}/sparse/0" ]; then
-    python3 /scripts/sparse_to_ply.py ${WFOLDER}/sparse/0/ calib.ply
-    python3 /scripts/binary_to_text_converter.py ${WFOLDER}/sparse/0
-fi
-
 
 if [ -n "$DENSE" ] || [ -n "$UNDISTORT" ]; then
     mkdir -p ${WFOLDER}/dense
     echo "Running COLMAP undistorted reconstruction..."
 
+    if [ -z "$IMAGE_SIZE" ]; then
+        IMAGE_SIZE=1024
+    fi
+
+
     colmap image_undistorter \
         --image_path /working/images \
         --input_path ${WFOLDER}/sparse/0 \
         --output_path ${WFOLDER}/dense \
-        --output_type COLMAP
+        --output_type COLMAP \
+        --max_image_size ${IMAGE_SIZE}
 
     if [ -d "${WFOLDER}/dense/sparse" ]; then
         python3 /scripts/sparse_to_ply.py ${WFOLDER}/dense/sparse calib.ply
@@ -95,15 +100,35 @@ if [ -n "$DENSE" ] || [ -n "$UNDISTORT" ]; then
     fi
 fi
 
+# if [ -d "${WFOLDER}/sparse/0" ]; then
+#     python3 /scripts/sparse_to_ply.py ${WFOLDER}/sparse/0/ calib.ply
+#     python3 /scripts/binary_to_text_converter.py ${WFOLDER}/sparse/0
+# fi
+
+
+
 
 if [ -n "$DENSE" ]; then
     mkdir -p ${WFOLDER}/dense
 
     echo "Running COLMAP dense reconstruction..."
 
+    PM_RESOLUTION=512
+    if [ "$IMAGE_SIZE" -le 512 ]; then
+        PM_RESOLUTION=256
+    fi
+
+    echo "Running RESOLUTION for PatchMatchStereo: ${PM_RESOLUTION}"
+
     colmap patch_match_stereo \
         --workspace_path ${WFOLDER}/dense \
-        --PatchMatchStereo.geom_consistency true
+        --PatchMatchStereo.geom_consistency 0 \
+        --PatchMatchStereo.window_radius 7 \
+        --PatchMatchStereo.num_samples 7 \
+        --PatchMatchStereo.num_iterations 2 \
+        --PatchMatchStereo.max_image_size ${PM_RESOLUTION}
+
+
 
     colmap stereo_fusion \
         --workspace_path ${WFOLDER}/dense \
