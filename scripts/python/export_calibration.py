@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import os
-import sys
 import json
 import struct
 import argparse
 from typing import Dict, Tuple, Optional
 from scipy.spatial.transform import Rotation as SciRot
 import numpy as np
+from pathlib import Path
 
 model_name_to_id = {
     'SIMPLE_PINHOLE': 0,
@@ -192,10 +192,11 @@ def _rotation_matrix_from_quaternion(q: Tuple[float, float, float, float]):
 def _detect_model_dir(base_dir: str) -> Optional[str]:
     # Expected: base_dir contains a 'sparse' folder.
     candidates = [
+        base_dir,  # in case user points directly to the sparse dir
+        os.path.join(base_dir, 'colmap', 'sparse', '0'),
+        os.path.join(base_dir, 'glomap', 'sparse', '0'),
         os.path.join(base_dir, 'sparse'),
         os.path.join(base_dir, 'sparse', '0'),
-        os.path.join(base_dir, 'sparse', '1'),
-        base_dir,  # in case user points directly to the sparse dir
     ]
     for cand in candidates:
         if (os.path.exists(os.path.join(cand, 'images.bin')) and
@@ -208,7 +209,6 @@ def _detect_model_dir(base_dir: str) -> Optional[str]:
 
 
 def _detect_images_dir(base_dir: str) -> Optional[str]:
-    # Prefer undistorted images if present (typical COLMAP undistorter output)
     candidates = [
         os.path.join(base_dir, 'images'),
         os.path.join(os.path.dirname(base_dir), 'images'),
@@ -219,7 +219,7 @@ def _detect_images_dir(base_dir: str) -> Optional[str]:
     return None
 
 
-def build_calibration(base_dir: str) -> Dict[int, dict]:
+def build_calibration(base_dir: str, output_dir: str) -> Dict[int, dict]:
     model_dir = _detect_model_dir(base_dir)
     if model_dir is None:
         raise FileNotFoundError(
@@ -238,6 +238,11 @@ def build_calibration(base_dir: str) -> Dict[int, dict]:
         raise FileNotFoundError(f"Neither images.bin nor images.txt found in '{model_dir}'.")
 
     images_dir = _detect_images_dir(base_dir)
+    if images_dir is None:
+        raise FileNotFoundError(
+            f"Could not find images directory in '{base_dir}'. "
+            "Expected an 'images/' folder alongside the 'sparse/' folder."
+        )
 
     calib: Dict[str, dict] = {}
     calib["images"] = {}
@@ -252,15 +257,16 @@ def build_calibration(base_dir: str) -> Dict[int, dict]:
         else:
             img_path = name  # fallback to filename only
 
-        cam_from_world = np.eye(4)
-        cam_from_world[0:3, 0:3] = np.array(R)
-        cam_from_world[0:3, 3] = np.array(tvec)
+        # cam_from_world = np.eye(4)
+        # cam_from_world[0:3, 0:3] = np.array(R)
+        # cam_from_world[0:3, 3] = np.array(tvec)
 
         calib["images"][img_id] = {
             'name': name,
-            'path': os.path.relpath(img_path, base_dir),
-            'cam_from_world': cam_from_world.flatten().tolist(),  # row-major
+            'path': os.path.relpath(img_path, output_dir),
             'camera_id': rec['camera_id'],
+            'R': np.array(R).flatten().tolist(),  # row-major
+            't': np.array(tvec).tolist(),
         }
 
     cameras_path_bin = os.path.join(model_dir, 'cameras.bin')
@@ -276,7 +282,6 @@ def build_calibration(base_dir: str) -> Dict[int, dict]:
     for cam_id, cam in cameras.items():
         calib['cameras'][cam_id] = cam
 
-
     return calib
 
 
@@ -286,14 +291,27 @@ def main():
     )
     parser.add_argument('base_dir', type=str,
                         help="Directory that contains the 'sparse' folder (e.g., COLMAP undistorted 'dense' dir).")
-    parser.add_argument('-o', '--output', type=str, default=None,
+    parser.add_argument('-o', '--output', type=str, default='calibration.json',
                         help='Output JSON path (default: <base_dir>/calibration.json)')
+    # looks for sparse model files (images.bin, cameras.bin) in this order:
+    # <base_dir>/
+    # <base_dir>/colmap/sparse/0
+    # <base_dir>/glomap/sparse/0
+    # <base_dir>/sparse/0
+
+    # looks for images/ dir in this order:
+    # <base_dir>/images
+    # <base_dir>/../images
+
     args = parser.parse_args()
 
-    base_dir = os.path.abspath(args.base_dir)
-    out_path = args.output or os.path.join(base_dir, 'calibration.json')
+    base_dir = Path(os.path.abspath(args.base_dir))
 
-    calib = build_calibration(base_dir)
+    out_path = Path(args.output)
+    if not out_path.is_absolute():
+        out_path = base_dir / out_path
+
+    calib = build_calibration(base_dir, os.path.dirname(out_path))
 
     # Convert to plain dict with string keys if preferred; the requirement asked for key=image_id
     # Using int keys is fine in JSON, but some tools prefer strings. We'll keep ints.

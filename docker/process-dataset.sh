@@ -48,6 +48,23 @@ done
 
 WFOLDER='/working/'
 
+CONFIG_FILE='/working/config.yaml'
+if [ "${COLMAP}" ]; then
+    echo 'runner: colmap'
+    echo 'runner: colmap' > ${CONFIG_FILE}
+else
+    echo 'runner: glomap' > ${CONFIG_FILE}
+fi
+if [ -n "$DENSE" ]; then
+    echo 'densification: enabled' >> ${CONFIG_FILE}
+fi
+if [ -n "$MAX_RESOLUTION" ]; then
+    echo "max_resolution: ${MAX_RESOLUTION}" >> ${CONFIG_FILE}
+fi
+if [ -n "$MESHING" ]; then
+    echo 'meshing: enabled' >> ${CONFIG_FILE}
+fi
+
 ASSETS_FOLDER='/working/assets'
 mkdir -p ${ASSETS_FOLDER}
 
@@ -86,7 +103,12 @@ else
         --output_path   ${WFOLDER}/sparse
 fi
 
-/scripts/export_calibration.py ${WFOLDER}/sparse/0 -o ${ASSETS_FOLDER}/calibration.json
+echo "/scripts/export_calibration.py '/working' -o ${ASSETS_FOLDER}/calibration.json"
+/scripts/export_calibration.py '/working' -o ${ASSETS_FOLDER}/calibration.json
+
+cp -r ${WFOLDER}/sparse/0 ${ASSETS_FOLDER}/sparse/
+python3 /scripts/sparse_to_ply.py ${ASSETS_FOLDER}/sparse calib.ply
+python3 /scripts/binary_to_text_converter.py ${ASSETS_FOLDER}/sparse
 
 if [ -n "$DENSE" ] || [ -n "$UNDISTORT" ]; then
     mkdir -p ${WFOLDER}/dense
@@ -128,6 +150,8 @@ if [ -n "$DENSE" ]; then
     if [ "$MAX_RESOLUTION" -le 512 ]; then
         PM_RESOLUTION=256
     fi
+
+    echo "pm_resolution: ${PM_RESOLUTION}" >> ${CONFIG_FILE}
 
     echo "Running RESOLUTION for PatchMatchStereo: ${PM_RESOLUTION}"
 
