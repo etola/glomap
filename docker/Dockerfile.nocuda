@@ -34,9 +34,19 @@ RUN apt-get update && \
         qtbase5-dev \
         libqt5opengl5-dev \
         libcgal-dev \
-        libceres-dev \
         libsuitesparse-dev \
         libatlas-base-dev
+
+# Build CERES from source
+RUN git clone https://github.com/ceres-solver/ceres-solver.git
+RUN cd ceres-solver && \
+    git submodule update --init --recursive && \
+    mkdir build && \
+    cd build && \
+    cmake .. -DUSE_CUDA=OFF \
+        -DCMAKE_INSTALL_PREFIX=/colmap_installed -DCMAKE_BUILD_TYPE=Release && \
+    make -j && \
+    make install
 
 # Build and install COLMAP (without CUDA).
 RUN git clone https://github.com/colmap/colmap.git
@@ -78,7 +88,6 @@ RUN apt-get update && \
         libgl1 \
         libglew2.2 \
         libgoogle-glog0v6 \
-        libceres2 \
         libsuitesparse-dev \
         libatlas3-base \
         libqt5core5a \
