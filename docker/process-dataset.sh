@@ -38,6 +38,10 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             ;;
+        --clean-after)
+            CLEAN_AFTER=true
+            shift
+            ;;
         *)
             echo "ERROR: Unknown option '$1'." >&2
             echo "Use --help for usage information." >&2
@@ -47,8 +51,10 @@ while [[ $# -gt 0 ]]; do
 done
 
 WFOLDER='/working/'
+ASSETS_FOLDER='/working/assets'
+mkdir -p ${ASSETS_FOLDER}
 
-CONFIG_FILE='/working/config.yaml'
+CONFIG_FILE=${ASSETS_FOLDER}'/config.yaml'
 if [ "${COLMAP}" ]; then
     echo 'runner: colmap'
     echo 'runner: colmap' > ${CONFIG_FILE}
@@ -64,9 +70,10 @@ fi
 if [ -n "$MESHING" ]; then
     echo 'meshing: enabled' >> ${CONFIG_FILE}
 fi
+if [ -n "$CLEAN_AFTER" ]; then
+    echo 'clean_after: true' >> ${CONFIG_FILE}
+fi
 
-ASSETS_FOLDER='/working/assets'
-mkdir -p ${ASSETS_FOLDER}
 
 if [ -z "$COLMAP" ]; then
     echo "Running GLOMAP processing..."
@@ -181,3 +188,7 @@ if [ -n "$DENSE" ]; then
 
 fi
 
+if [ -n "$CLEAN_AFTER" ]; then
+    echo "Cleaning intermediate files..."
+    rm -rf ${WFOLDER}
+fi
